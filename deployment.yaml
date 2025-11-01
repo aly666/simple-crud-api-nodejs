@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crud-express
+  labels:
+    app: crud-express
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crud-express
+  template:
+    metadata:
+      labels:
+        app: crud-express
+    spec:
+      containers:
+        - name: crud-express
+          image: aly666/simple-crud-nodejs   # <-- ganti jika pakai registry
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: crud-express
+spec:
+  selector:
+    app: crud-express
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+
