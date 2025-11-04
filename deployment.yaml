@@ -1,36 +1,92 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-task-config
+data:
+  MONGO_URL: "mongodb://mongo:27017/tasks"
+  PORT: "3000"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: crud-express
-  labels:
-    app: crud-express
+  name: mongo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: crud-express
+      app: mongo
   template:
     metadata:
       labels:
-        app: crud-express
+        app: mongo
     spec:
       containers:
-        - name: crud-express
-          image: aly666/simple-crud-nodejs   # <-- ganti jika pakai registry
-          imagePullPolicy: IfNotPresent
+        - name: mongo
+          image: mongo:6
           ports:
-            - containerPort: 3000
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+      volumes:
+        - name: mongo-data
+          persistentVolumeClaim:
+            claimName: mongo-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: crud-express
+  name: mongo
 spec:
   selector:
-    app: crud-express
-  type: ClusterIP
+    app: mongo
+  ports:
+    - port: 27017
+      targetPort: 27017
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-task-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-task-app
+  template:
+    metadata:
+      labels:
+        app: node-task-app
+    spec:
+      containers:
+        - name: node-task-app
+          image: aly666/node-crud-app
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: node-task-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-task-service
+spec:
+  selector:
+    app: node-task-app
   ports:
     - port: 3000
       targetPort: 3000
-      protocol: TCP
 
